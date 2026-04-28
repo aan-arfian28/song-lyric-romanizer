@@ -47,6 +47,7 @@ Contributions are welcome! If you want to improve the Shady DOM piercing logic o
 - [ ] Support for Korean (Revised Romanization)
 - [ ] Toggle switch for specific languages in the Options page
 - [ ] Performance optimization for dictionary loading
+- [ ] support for other site liek spotify or other
 
 ## 📄 License
 
