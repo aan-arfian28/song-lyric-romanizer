@@ -44,7 +44,7 @@ Contributions are welcome! If you want to improve the Shady DOM piercing logic o
 
 ### Development Roadmap
 - [ ] Support for Chinese (Pinyin)
-- [ ] Support for Korean (Revised Romanization)
+- [ ] Support for Korean (hangul-romanize)
 - [ ] Toggle switch for specific languages in the Options page
 - [ ] Performance optimization for dictionary loading
 - [ ] support for other site liek spotify or other
