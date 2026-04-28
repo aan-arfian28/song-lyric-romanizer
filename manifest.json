@@ -1,0 +1,28 @@
+{
+  "manifest_version": 3,
+  "name": "YTM Romaji Pro",
+  "version": "1.2",
+  "permissions": ["storage"],
+  "host_permissions": ["https://music.youtube.com/*"],
+  "background": {
+    "service_worker": "background.js"
+  },
+  "web_accessible_resources": [
+    {
+      "resources": ["lib/dict/*"],
+      "matches": ["https://music.youtube.com/*"]
+    }
+  ],
+  "content_scripts": [
+    {
+      "matches": ["https://music.youtube.com/*"],
+      "js": [
+        "lib/kuromoji.js",
+        "lib/kuroshiro.min.js",
+        "lib/kuroshiro-analyzer-kuromoji.min.js",
+        "content.js"
+      ],
+      "run_at": "document_end"
+    }
+  ]
+}
