@@ -1,13 +1,13 @@
-// background.js - Keep this minimal
 chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
     if (request.type === "GET_SETTINGS") {
-        chrome.storage.local.get(["color", "fontSize", "enabled"], (data) => {
-            sendResponse({
-                color: data.color || "#3ea6ff",
-                fontSize: data.fontSize || 1.4,
-                enabled: data.enabled !== false
-            });
+        // Match the keys used in options.js and content.js
+        chrome.storage.local.get(["themeColor", "fontSize", "enableJP", "enableZH", "enableKO"], (data) => {
+            sendResponse(data);
         });
-        return true;
+        return true; 
     }
+}); 
+
+chrome.action.onClicked.addListener(() => {
+  chrome.runtime.openOptionsPage();
 });

@@ -1,9 +1,16 @@
 {
-  "manifest_version": 3,
-  "name": "YTM Romaji Pro",
-  "version": "1.2",
+"manifest_version": 3,
+  "name": "Lyric Romanizer for YouTube Music",
+  "version": "1.0",
   "permissions": ["storage"],
   "host_permissions": ["https://music.youtube.com/*"],
+  "options_ui": {
+    "page": "options.html",
+    "open_in_tab": false
+  },
+  "action": {
+    "default_title": "Open Settings"
+  },
   "background": {
     "service_worker": "background.js"
   },
@@ -20,6 +27,8 @@
         "lib/kuromoji.js",
         "lib/kuroshiro.min.js",
         "lib/kuroshiro-analyzer-kuromoji.min.js",
+        "lib/index.min.js",
+        "lib/hangul-romanize.min.js",
         "content.js"
       ],
       "run_at": "document_end"
