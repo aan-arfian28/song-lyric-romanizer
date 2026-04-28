@@ -28,8 +28,7 @@ async function initKuro() {
 
 function removeOldBox() {
     document.querySelectorAll('.romaji-box').forEach(box => {
-        box.innerHTML = '';
-        box.remove();
+        if (box.parentNode) box.parentNode.removeChild(box);
     });
 }
 
@@ -41,19 +40,42 @@ function injectRomaji(target, text, settings) {
 
     const romajiDiv = document.createElement('div');
     romajiDiv.className = "romaji-box";
-    romajiDiv.innerHTML = text;
+    romajiDiv.textContent = text;
+
+    // Strong styling to force full width
     romajiDiv.style.cssText = `
-        color: ${themeColor};
-        background: rgba(62, 166, 255, 0.05);
-        padding: 20px;
-        margin: 10px 0 20px 0;
-        border-radius: 8px;
-        white-space: pre-wrap;
-        font-size: ${fontSize}em;
-        line-height: 1.6;
-        border-left: 4px solid ${themeColor};
+        color: ${themeColor} !important;
+        background: rgba(62, 166, 255, 0.08) !important;
+        padding: 20px 24px !important;
+        margin: 16px 0 24px 0 !important;
+        border-radius: 8px !important;
+        border-left: 5px solid ${themeColor} !important;
+        white-space: pre-wrap !important;
+        font-size: ${fontSize}em !important;
+        line-height: 1.75 !important;
+        font-family: "Roboto", "Noto Sans", system-ui, sans-serif !important;
+        width: 100% !important;
+        max-width: 100% !important;
+        min-width: 100% !important;
+        box-sizing: border-box !important;
+        text-align: left !important;
+        word-break: break-word !important;
+        overflow-wrap: anywhere !important;
+        display: block !important;
     `;
 
+    // Critical: Break out of parent's flex centering
+    const parentContainer = target.parentElement;
+    if (parentContainer) {
+        parentContainer.style.cssText += `
+            display: block !important;
+            width: 100% !important;
+            align-items: stretch !important;
+            justify-content: flex-start !important;
+        `;
+    }
+
+    // Insert the romaji box
     target.parentNode.insertBefore(romajiDiv, target);
 }
 
@@ -159,12 +181,13 @@ async function processLyrics() {
 // ==================== OBSERVER ====================
 function startObserver() {
     const stableParent =
+        document.querySelector('ytmusic-player-page') ||
         document.querySelector('ytmusic-browse-response') ||
         document.querySelector('ytmusic-app') ||
         document.body;
 
     observer = new MutationObserver(() => {
-        clearTimeout(debounceTimer);
+        if (debounceTimer) clearTimeout(debounceTimer);
         debounceTimer = setTimeout(processLyrics, 180);
     });
 
@@ -176,7 +199,7 @@ function startObserver() {
     });
 
     console.log("✅ Observer attached to:", stableParent.tagName || "body");
-    setTimeout(processLyrics, 1200);
+    // setTimeout(processLyrics, 1200);
 }
 
 // ==================== START ====================

@@ -1,6 +1,6 @@
 {
 "manifest_version": 3,
-  "name": "Lyric Romanizer for YouTube Music",
+  "name": "Song Lyric Romanizer",
   "version": "1.0",
   "permissions": ["storage"],
   "host_permissions": ["https://music.youtube.com/*"],
