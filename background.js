@@ -8,6 +8,6 @@ chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
     }
 }); 
 
-chrome.action.onClicked.addListener(() => {
-  chrome.runtime.openOptionsPage();
-});
+// chrome.action.onClicked.addListener(() => {
+//   chrome.runtime.openOptionsPage();
+// });
