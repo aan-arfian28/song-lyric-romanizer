@@ -1,33 +1,53 @@
 {
-"manifest_version": 3,
-  "name": "Song Lyric Romanizer",
-  "version": "1.0",
-  "permissions": ["storage"],
-  "host_permissions": ["https://music.youtube.com/*"],
-  "options_ui": {
-    "page": "options.html",
-    "open_in_tab": false
+  "manifest_version": 3,
+  "name": "YouTube Music Lyric Romanizer",
+  "version": "1.0.0",
+  "author": "Arfith Aant",
+  "description": "Automatically romanizes Japanese, Chinese, and Korean lyrics on YouTube Music for easier sing-alongs.",
+  "icons": {
+    "16": "icons/icon16.png",
+    "32": "icons/icon32.png",
+    "48": "icons/icon48.png",
+    "128": "icons/icon128.png"
   },
+  "permissions": [
+    "storage"
+  ],
+  "host_permissions": [
+    "https://music.youtube.com/*"
+  ],
+
   "action": {
-    "default_title": "Open Settings"
+    "default_title": "Open Romanizer Settings",
+    "default_popup": "options.html",
+    "default_icon": {
+      "16": "icons/icon16.png",
+      "32": "icons/icon32.png"
+    }
   },
   "background": {
     "service_worker": "background.js"
   },
   "web_accessible_resources": [
     {
-      "resources": ["lib/dict/*"],
-      "matches": ["https://music.youtube.com/*"]
+      "resources": [
+        "lib/dict/*"
+      ],
+      "matches": [
+        "https://music.youtube.com/*"
+      ]
     }
   ],
   "content_scripts": [
     {
-      "matches": ["https://music.youtube.com/*"],
+      "matches": [
+        "https://music.youtube.com/*"
+      ],
       "js": [
         "lib/kuromoji.js",
         "lib/kuroshiro.min.js",
         "lib/kuroshiro-analyzer-kuromoji.min.js",
-        "lib/index.min.js",
+        "lib/pinyin-pro.min.js",
         "lib/hangul-romanize.min.js",
         "content.js"
       ],

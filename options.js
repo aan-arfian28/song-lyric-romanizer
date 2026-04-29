@@ -50,3 +50,17 @@ elements.saveBtn.onclick = () => {
         }, 2000);
     });
 };
+
+const inputs = document.querySelectorAll('input');
+inputs.forEach(input => {
+    input.onchange = () => {
+        const newSettings = {
+            themeColor: elements.themeColor.value || DEFAULTS.themeColor,
+            fontSize: elements.fontSize.value || DEFAULTS.fontSize,
+            enableJP: elements.enableJP.checked,
+            enableZH: elements.enableZH.checked,
+            enableKO: elements.enableKO.checked
+        };
+        chrome.storage.local.set(newSettings);
+    };
+});

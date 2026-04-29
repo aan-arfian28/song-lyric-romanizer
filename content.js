@@ -122,54 +122,48 @@ async function processLyrics() {
     let result = "";
 
     try {
-        if (/[\u3040-\u30ff]/.test(text) && settings.enableJP) {
+        const settings = await getSettings();
+        
+        const hasKana = /[\u3040-\u30ff]/.test(text); // Hiragana/Katakana
+        const hasHangul = /[\uac00-\ud7af]/.test(text); // Korean
+        const hasHan = /[\u4e00-\u9fff]/.test(text);   // Shared Kanji/Hanzi
+
+        // 1. Japanese Block
+        if (settings.enableJP && hasKana) {
             await initKuro();
             const toRomajiMixed = async (line) => {
                 return await Promise.all(
                     line.split(/([\u3040-\u30ff\u4e00-\u9fff]+)/g).map(async (chunk) => {
-                        // If it's Japanese → convert
                         if (/[\u3040-\u30ff\u4e00-\u9fff]/.test(chunk)) {
-                            return await kuro.convert(chunk, {
-                                to: "romaji",
-                                mode: "spaced"
-                            });
+                            return await kuro.convert(chunk, { to: "romaji", mode: "spaced" });
                         }
-                        // Otherwise → keep as-is
                         return chunk;
                     })
                 ).then(parts => parts.join(''));
             };
-
-            result = await Promise.all(
-                text.split('\n').map(toRomajiMixed)
-            ).then(lines => lines.join('\n'));
+            result = await Promise.all(text.split('\n').map(toRomajiMixed)).then(lines => lines.join('\n'));
         }
-        else if (/[\uac00-\ud7af]/.test(text) && settings.enableKO) {
+        
+        // 2. Korean Block
+        else if (settings.enableKO && hasHangul) {
             const romanize = window.HangulRomanize?.Romanize?.from?.bind(window.HangulRomanize.Romanize);
             if (romanize) {
-                result = text
-                    .split("\n")
-                    .map(l => l.trim() ? romanize(l) : "")
-                    .join("\n");
+                result = text.split("\n").map(l => l.trim() ? romanize(l) : "").join("\n");
             }
         }
-        else if (/[\u4e00-\u9fff]/.test(text) && settings.enableZH) {
+        
+        // 3. Chinese Block (The Critical Fix)
+        // Only run if: 
+        // - Chinese is enabled
+        // - Text contains Hanzi
+        // - AND Text contains ZERO Japanese Kana
+        else if (settings.enableZH && hasHan && !hasKana) {
             const toPinyinMixed = (line) => {
                 return line.replace(/[\u4e00-\u9fff]+/g, (chunk) => {
-                    return window.pinyinPro.pinyin(chunk, {
-                        toneType: 'symbol'
-                    });
+                    return window.pinyinPro.pinyin(chunk, { toneType: 'symbol' });
                 });
             };
-            console.log('ahskjdhasjlkdajlkshdasdjlkashlkdahslidbh hbdliahduiahlisdhh')
-
-            result = text
-                .split('\n')
-                .map(line => toPinyinMixed(line))
-                .join('\n');
-
-            console.log("Pinyin result:", result);
-            // old_version = result = window.pinyinPro?.pinyin?.(text, { toneType: "symbol" }) || "";
+            result = text.split('\n').map(toPinyinMixed).join('\n');
         }
     } catch (e) {
         console.error("Romanization failed:", e);
@@ -207,15 +201,8 @@ observer.observe(document.body, {
 
 chrome.storage.onChanged.addListener((changes, area) => {
     if (area !== "local") return;
-
-    // Only rerender if relevant keys changed
-    const keys = ["themeColor", "fontSize", "enableJP", "enableKO", "enableZH"];
-    const shouldUpdate = Object.keys(changes).some(k => keys.includes(k));
-
-    if (shouldUpdate) {
         lastLyrics = ""; // force refresh
         processLyrics();
-    }
 });
 
 // Initial run
