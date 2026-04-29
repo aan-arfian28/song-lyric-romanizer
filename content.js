@@ -29,7 +29,6 @@ function createRomajiBox(text, { themeColor, fontSize }) {
 
     // Reset + styling
     box.style.cssText = `
-        all: initial;
         display: block;
         white-space: pre-wrap;
 
@@ -49,10 +48,14 @@ function createRomajiBox(text, { themeColor, fontSize }) {
 
     // Render lines safely (fix indentation bug)
     box.innerHTML = text
-        .split("\n")
-        .filter(l => l.trim())
-        .map(l => `<div>${l.trim()}</div>`)
-        .join("");
+                    .split('\n')
+                    .map(line => {
+                        if (!line.trim()) {
+                        return `<div style="height:1em;"></div>`; // 👈 preserve verse spacing
+                        }
+                        return `<div>${line.trim()}</div>`;
+                    })
+                    .join('');
 
     return box;
 }
@@ -121,10 +124,28 @@ async function processLyrics() {
     try {
         if (/[\u3040-\u30ff]/.test(text) && settings.enableJP) {
             await initKuro();
-            result = await kuro.convert(text, { to: "romaji", mode: "spaced" });
+            const toRomajiMixed = async (line) => {
+                return await Promise.all(
+                    line.split(/([\u3040-\u30ff\u4e00-\u9fff]+)/g).map(async (chunk) => {
+                        // If it's Japanese → convert
+                        if (/[\u3040-\u30ff\u4e00-\u9fff]/.test(chunk)) {
+                            return await kuro.convert(chunk, {
+                                to: "romaji",
+                                mode: "spaced"
+                            });
+                        }
+                        // Otherwise → keep as-is
+                        return chunk;
+                    })
+                ).then(parts => parts.join(''));
+            };
+
+            result = await Promise.all(
+                text.split('\n').map(toRomajiMixed)
+            ).then(lines => lines.join('\n'));
         }
         else if (/[\uac00-\ud7af]/.test(text) && settings.enableKO) {
-            const romanize = window.HangulRomanize?.Romanize?.from;
+            const romanize = window.HangulRomanize?.Romanize?.from?.bind(window.HangulRomanize.Romanize);
             if (romanize) {
                 result = text
                     .split("\n")
@@ -133,14 +154,32 @@ async function processLyrics() {
             }
         }
         else if (/[\u4e00-\u9fff]/.test(text) && settings.enableZH) {
-            result = window.pinyinPro?.pinyin?.(text, { toneType: "symbol" }) || "";
+            const toPinyinMixed = (line) => {
+                return line.replace(/[\u4e00-\u9fff]+/g, (chunk) => {
+                    return window.pinyinPro.pinyin(chunk, {
+                        toneType: 'symbol'
+                    });
+                });
+            };
+            console.log('ahskjdhasjlkdajlkshdasdjlkashlkdahslidbh hbdliahduiahlisdhh')
+
+            result = text
+                .split('\n')
+                .map(line => toPinyinMixed(line))
+                .join('\n');
+
+            console.log("Pinyin result:", result);
+            // old_version = result = window.pinyinPro?.pinyin?.(text, { toneType: "symbol" }) || "";
         }
     } catch (e) {
         console.error("Romanization failed:", e);
         return;
     }
 
-    if (!result || result === text) return;
+    if (!result || result === text) {
+        removeOld();
+        return;
+    }
 
     removeOld();
 
