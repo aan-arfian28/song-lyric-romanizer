@@ -46,7 +46,6 @@ function createRomajiBox(text, { themeColor, fontSize }) {
         width: 100%;
     `;
 
-    // Render lines safely (fix indentation bug)
     box.innerHTML = text
                     .split('\n')
                     .map(line => {
@@ -128,7 +127,6 @@ async function processLyrics() {
         const hasHangul = /[\uac00-\ud7af]/.test(text); // Korean
         const hasHan = /[\u4e00-\u9fff]/.test(text);   // Shared Kanji/Hanzi
 
-        // 1. Japanese Block
         if (settings.enableJP && hasKana) {
             await initKuro();
             const toRomajiMixed = async (line) => {
@@ -144,7 +142,6 @@ async function processLyrics() {
             result = await Promise.all(text.split('\n').map(toRomajiMixed)).then(lines => lines.join('\n'));
         }
         
-        // 2. Korean Block
         else if (settings.enableKO && hasHangul) {
             const romanize = window.HangulRomanize?.Romanize?.from?.bind(window.HangulRomanize.Romanize);
             if (romanize) {
@@ -152,11 +149,6 @@ async function processLyrics() {
             }
         }
         
-        // 3. Chinese Block (The Critical Fix)
-        // Only run if: 
-        // - Chinese is enabled
-        // - Text contains Hanzi
-        // - AND Text contains ZERO Japanese Kana
         else if (settings.enableZH && hasHan && !hasKana) {
             const toPinyinMixed = (line) => {
                 return line.replace(/[\u4e00-\u9fff]+/g, (chunk) => {
