@@ -1,224 +1,183 @@
 let kuro;
-let isInitialized = false;
-let lastProcessedText = "";
-let debounceTimer = null;
-let observer = null;
-let intervalId = null;
+let isKuroReady = false;
+let lastLyrics = "";
 
-let cachedSettings = null;
-let settingsCacheTime = 0;
-const SETTINGS_TTL = 30_000;
-
+// ================= INIT =================
 async function initKuro() {
-    if (isInitialized) return;
-    try {
-        const KuroConstructor = window.Kuroshiro?.default || window.Kuroshiro;
-        kuro = new KuroConstructor();
+    if (isKuroReady) return;
 
-        const AnalyzerConstructor = window.kuroshiroAnalyzerKuromoji || window.KuromojiAnalyzer;
-        const dictPath = chrome.runtime.getURL("lib/dict/");
-        const analyzer = new AnalyzerConstructor({ dictPath });
+    const Kuro = window.Kuroshiro?.default || window.Kuroshiro;
+    const Analyzer = window.kuroshiroAnalyzerKuromoji || window.KuromojiAnalyzer;
 
-        await kuro.init(analyzer);
-        isInitialized = true;
-    } catch (err) {
-        console.error("Failed to initialize Japanese Romanizer:", err);
-    }
+    kuro = new Kuro();
+    await kuro.init(new Analyzer({
+        dictPath: chrome.runtime.getURL("lib/dict/")
+    }));
+
+    isKuroReady = true;
 }
 
-function removeOldBox() {
-    document.querySelectorAll('.romaji-box').forEach(box => {
-        if (box.parentNode) box.parentNode.removeChild(box);
-    });
+// ================= UTIL =================
+function cleanText(text) {
+    return text
+        .replace(/[ \t]+$/gm, "")  // trim end
+        .replace(/^[ \t]+/gm, ""); // trim start
 }
 
-function injectRomaji(target, text, settings) {
-    removeOldBox();
+function createRomajiBox(text, { themeColor, fontSize }) {
+    const box = document.createElement("div");
 
-    const themeColor = settings.themeColor || '#3ea6ff';
-    const fontSize = settings.fontSize || '1.2';
+    // Reset + styling
+    box.style.cssText = `
+        all: initial;
+        display: block;
+        white-space: pre-wrap;
 
-    const romajiDiv = document.createElement('div');
-    romajiDiv.className = "romaji-box";
-    romajiDiv.textContent = text;
+        color: ${themeColor};
+        background: rgba(62,166,255,0.08);
 
-    // Strong styling to force full width
-    romajiDiv.style.cssText = `
-        color: ${themeColor} !important;
-        background: rgba(62, 166, 255, 0.08) !important;
-        padding: 20px 24px !important;
-        margin: 16px 0 24px 0 !important;
-        border-radius: 8px !important;
-        border-left: 5px solid ${themeColor} !important;
-        white-space: pre-wrap !important;
-        font-size: ${fontSize}em !important;
-        line-height: 1.75 !important;
-        font-family: "Roboto", "Noto Sans", system-ui, sans-serif !important;
-        width: 100% !important;
-        max-width: 100% !important;
-        min-width: 100% !important;
-        box-sizing: border-box !important;
-        text-align: left !important;
-        word-break: break-word !important;
-        overflow-wrap: anywhere !important;
-        display: block !important;
+        padding: 20px 24px;
+        margin: 16px 0;
+
+        border-left: 5px solid ${themeColor};
+        border-radius: 8px;
+
+        font: ${fontSize}em/1.75 Roboto, Noto Sans, system-ui, sans-serif;
+        box-sizing: border-box;
+        width: 100%;
     `;
 
-    // Critical: Break out of parent's flex centering
-    const parentContainer = target.parentElement;
-    if (parentContainer) {
-        parentContainer.style.cssText += `
-            display: block !important;
-            width: 100% !important;
-            align-items: stretch !important;
-            justify-content: flex-start !important;
-        `;
-    }
+    // Render lines safely (fix indentation bug)
+    box.innerHTML = text
+        .split("\n")
+        .filter(l => l.trim())
+        .map(l => `<div>${l.trim()}</div>`)
+        .join("");
 
-    // Insert the romaji box
-    target.parentNode.insertBefore(romajiDiv, target);
+    return box;
 }
 
-async function getSettings() {
-    const now = Date.now();
-    if (cachedSettings && (now - settingsCacheTime) < SETTINGS_TTL) {
-        return cachedSettings;
-    }
+function removeOld() {
+    document.querySelectorAll(".romaji-box").forEach(el => el.remove());
+}
 
+function getSettings() {
     return new Promise((resolve) => {
-        chrome.storage.local.get({
-            themeColor: '#3ea6ff',
-            fontSize: '1.2',
-            enableJP: true,
-            enableKO: true,
-            enableZH: true
-        }, (settings) => {
-            cachedSettings = settings;
-            settingsCacheTime = Date.now();
-            resolve(settings);
-        });
+        try {
+            chrome.storage.local.get({
+                themeColor: "#3ea6aa",
+                fontSize: "1.2",
+                enableJP: true,
+                enableKO: true,
+                enableZH: true
+            }, (settings) => {
+                if (chrome.runtime.lastError) {
+                    console.warn("Storage error:", chrome.runtime.lastError);
+                    return resolve({
+                        themeColor: "#3ea6aa",
+                        fontSize: "1.2",
+                        enableJP: true,
+                        enableKO: true,
+                        enableZH: true
+                    });
+                }
+                resolve(settings);
+            });
+        } catch (e) {
+            console.warn("Extension context lost, fallback to defaults");
+            resolve({
+                themeColor: "#3ea6aa",
+                fontSize: "1.2",
+                enableJP: true,
+                enableKO: true,
+                enableZH: true
+            });
+        }
     });
 }
 
-let isProcessing = false;
 
+// ================= CORE =================
 async function processLyrics() {
-    if (isProcessing) return;
+    const el = document.querySelector(
+        "ytmusic-description-shelf-renderer yt-formatted-string.non-expandable.description"
+    );
 
-    const lyricsElement = document.querySelector('ytmusic-description-shelf-renderer yt-formatted-string.non-expandable.description');
-    console.log("🔍 Checking lyrics element:", lyricsElement);
-
-    if (!lyricsElement || lyricsElement.hasAttribute('is-empty')) {
-        removeOldBox();
-        lastProcessedText = "";
+    if (!el || el.hasAttribute("is-empty")) {
+        removeOld();
+        lastLyrics = "";
         return;
     }
 
-    const currentText = lyricsElement.innerText.trim();
-    if (currentText === lastProcessedText || currentText.length < 5) return;
+    const text = el.innerText.trim();
+    if (!text || text === lastLyrics) return;
 
-    const hasKana = /[\u3040-\u30ff]/.test(currentText);
-    const isKO = /[\uac00-\ud7af]/.test(currentText);
-    const hasCJK = /[\u4e00-\u9fff]/.test(currentText);
-
-    let lang = null;
-
-    if (isKO) {
-        lang = 'KO';
-    } else if (hasKana) {
-        lang = 'JP';
-    } else if (hasCJK) {
-        lang = 'ZH';
-    }
-
-    lastProcessedText = currentText;
-    isProcessing = true;
-
-    removeOldBox();
+    lastLyrics = text;
 
     const settings = await getSettings();
-    let resultText = "";
+
+    let result = "";
 
     try {
-        if (lang === 'JP' && settings.enableJP) {
-            if (!isInitialized) await initKuro();
-            resultText = await kuro.convert(currentText, { to: "romaji", mode: "spaced" });
+        if (/[\u3040-\u30ff]/.test(text) && settings.enableJP) {
+            await initKuro();
+            result = await kuro.convert(text, { to: "romaji", mode: "spaced" });
         }
-        else if (lang === 'KO' && settings.enableKO) {
-            const romanizeFrom = window.HangulRomanize?.Romanize?.from?.bind(window.HangulRomanize.Romanize);
-
-            if (typeof romanizeFrom === 'function') {
-                const lines = currentText.split('\n');
-                const romanized = lines.map(line => {
-                    if (!line.trim()) return '';
-                    try {
-                        return romanizeFrom(line);
-                    } catch {
-                        return line;
-                    }
-                });
-                resultText = romanized.join('\n');
-            } else {
-                console.warn("⚠️ HangulRomanize.from not available");
-                lastProcessedText = "";
+        else if (/[\uac00-\ud7af]/.test(text) && settings.enableKO) {
+            const romanize = window.HangulRomanize?.Romanize?.from;
+            if (romanize) {
+                result = text
+                    .split("\n")
+                    .map(l => l.trim() ? romanize(l) : "")
+                    .join("\n");
             }
         }
-        else if (lang === 'ZH' && settings.enableZH && window.pinyinPro?.pinyin) {
-            resultText = window.pinyinPro.pinyin(currentText, { toneType: 'symbol' });
+        else if (/[\u4e00-\u9fff]/.test(text) && settings.enableZH) {
+            result = window.pinyinPro?.pinyin?.(text, { toneType: "symbol" }) || "";
         }
     } catch (e) {
-        console.error("❌ Romanization error:", e);
-        lastProcessedText = "";
-    } finally {
-        isProcessing = false;
+        console.error("Romanization failed:", e);
+        return;
     }
 
-    if (resultText && resultText !== currentText) {
-        injectRomaji(lyricsElement, resultText, settings);
-    }
+    if (!result || result === text) return;
+
+    removeOld();
+
+    const box = createRomajiBox(cleanText(result), settings);
+    box.className = "romaji-box";
+
+    const wrapper = document.createElement("div");
+    wrapper.appendChild(box);
+
+    el.parentNode.insertBefore(wrapper, el);
 }
 
-// ==================== OBSERVER ====================
-function startObserver() {
-    const stableParent =
-        document.querySelector('ytmusic-player-page') ||
-        document.querySelector('ytmusic-browse-response') ||
-        document.querySelector('ytmusic-app') ||
-        document.body;
+// ================= OBSERVER =================
+const observer = new MutationObserver(() => {
+    clearTimeout(observer._t);
+    observer._t = setTimeout(processLyrics, 150);
+});
 
-    observer = new MutationObserver(() => {
-        if (debounceTimer) clearTimeout(debounceTimer);
-        debounceTimer = setTimeout(processLyrics, 180);
-    });
-
-    observer.observe(stableParent, {
-        childList: true,
-        subtree: true,
-        attributes: true,
-        attributeFilter: ['is-empty']
-    });
-
-    console.log("✅ Observer attached to:", stableParent.tagName || "body");
-    // setTimeout(processLyrics, 1200);
-}
-
-// ==================== START ====================
-initKuro();
-setTimeout(startObserver, 800);
+observer.observe(document.body, {
+    childList: true,
+    subtree: true,
+    attributes: true,
+    attributeFilter: ["is-empty"]
+});
 
 chrome.storage.onChanged.addListener((changes, area) => {
-    if (area === 'local') {
-        // Invalidate the cache
-        cachedSettings = null;
-        
-        // Force a re-process of the lyrics with new settings
+    if (area !== "local") return;
+
+    // Only rerender if relevant keys changed
+    const keys = ["themeColor", "fontSize", "enableJP", "enableKO", "enableZH"];
+    const shouldUpdate = Object.keys(changes).some(k => keys.includes(k));
+
+    if (shouldUpdate) {
+        lastLyrics = ""; // force refresh
         processLyrics();
-        console.log("🔄 Settings updated live");
     }
 });
 
-// intervalId = setInterval(() => {
-//     if (document.querySelector('ytmusic-description-shelf-renderer')) {
-//         processLyrics();
-//     }
-// }, 3000);
+// Initial run
+setTimeout(processLyrics, 800);
