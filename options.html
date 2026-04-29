@@ -1,0 +1,78 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Settings - YTM Romanizer</title>
+    <style>
+        body { width: 300px; padding: 15px; font-family: 'Segoe UI', Tahoma, sans-serif; background: white; color:  #181818; }
+        .section { margin-bottom: 20px; border-bottom: 1px solid #333; padding-bottom: 10px; }
+        label { display: block; margin-bottom: 8px; font-size: 1.2em; color: #aaa; }
+        input[type="text"], input[type="number"] { width: 100%; padding: 8px; background: white; border: 1px solid #444; color: #222 ; border-radius: 4px; }
+        .toggle-row { display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px; }
+        button { width: 100%; padding: 10px; background: #3ea6ff; border: none; color: white; font-weight: bold; cursor: pointer; border-radius: 4px; margin-bottom: 20px; }
+        button:hover { background: #65b8ff; }
+
+        .donation-logos {
+        display: flex;
+        gap: 20px;
+        align-items: center;
+        margin-top: 10px;
+        }
+
+        .logo-link {
+        height: 20px; /* Uniform height keeps it tidy */
+        transition: transform 0.2s ease, filter 0.2s ease;
+        cursor: pointer;
+        }
+
+        .logo-link:hover {
+        transform: scale(1.2); /* Subtle pop on hover */
+        filter: brightness(1.1);
+        }
+
+        /* Optional: If you use YTM Dark Mode, you might want 
+        to add a slight background to the PayPal logo if it's too dark */
+        .paypal {
+        background: white;
+        padding: 5px 10px;
+        border-radius: 8px;
+        }
+    </style>
+</head>
+<body>
+    <div class="section">
+        <label>Appearance</label>
+        <div class="toggle-row"><span>Theme Color</span><input type="text" id="themeColor" style="width: 80px;"></div>
+        <div class="toggle-row"><span>Font Size (em)</span><input type="number" id="fontSize" step="0.1" style="width: 80px;"></div>
+    </div>
+
+    <div class="section">
+        <label>Enabled Languages</label>
+        <div class="toggle-row"><span>Japanese</span><input type="checkbox" id="enableJP" checked></div>
+        <div class="toggle-row"><span>Chinese</span><input type="checkbox" id="enableZH" checked></div>
+        <div class="toggle-row"><span>Korean</span><input type="checkbox" id="enableKO" checked></div>
+    </div>
+    <button id="save">Save & Apply</button>
+
+    <section class="support-section">
+        <h3>Support Project :</h3>    
+        <div class="donation-container">
+            <p>Support the development of this extension:</p>
+            
+            <div class="donation-logos">
+                <a href="https://ko-fi.com/aanarfian" target="_blank" title="Support me on Ko-fi">
+                    <img src="icons/kofi.png" alt="Ko-fi" class="logo-link">
+                </a>
+                
+                <a href="https://paypal.me/arfithaant" target="_blank" title="Donate via PayPal">
+                    <img src="icons/paypal.svg" alt="PayPal" class="logo-link">
+                </a>
+            </div>
+        </div>
+        
+        <div class="footer-note">
+            <p>Found a bug? <a href="https://github.com/aan-arfian28/song-lyric-romanizer/issues">Open an Issue</a> or email me at <a href="mailto:aantarfith@gmail.com">aantarfith@gmail.com</a>.</p>
+        </div>
+    </section>
+    <script src="options.js"></script>
+</body>
+</html>
