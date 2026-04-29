@@ -1,4 +1,4 @@
-# YTM Romaji Lyrics Extension
+# YouTube Music Lyric Romanizer Extension
 
 A Chrome extension for YouTube Music that automatically romanizes Japanese lyrics (Kanji/Kana → Romaji) locally in the browser using morphological analysis.
 
@@ -43,11 +43,8 @@ Contributions are welcome! If you want to improve the Shady DOM piercing logic o
 5. Open a Pull Request.
 
 ### Development Roadmap
-- [ ] Support for Chinese (Pinyin)
-- [ ] Support for Korean (hangul-romanize)
-- [ ] Toggle switch for specific languages in the Options page
 - [ ] Performance optimization for dictionary loading
-- [ ] support for other site liek spotify or other
+- [ ] support for other site like spotify or other
 
 ## 📄 License
 
